@@ -41,10 +41,25 @@ func main() {
 	initDatabase()
 	mux := mux.NewRouter()
 	mux.HandleFunc("/new", newHandler)
-	mux.HandleFunc("/create", createHandler)
 	mux.HandleFunc("/delete/{id}", deleteHandler)
+	mux.HandleFunc("/update/{id}", updateHandler)
+	mux.HandleFunc("/edit/{id}", editHandler)
 	mux.HandleFunc("/", indexHandler)
 	http.ListenAndServe(":3000", mux)
+}
+
+func updateHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, _ := strconv.Atoi(vars["id"])
+	title := r.FormValue("title")
+	body := r.FormValue("body")
+	tags := r.FormValue("tags")
+	statement, err := database.Prepare("UPDATE entries SET title = ?, body = ?, tags = ? WHERE ID = ?")
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = statement.Exec(title, body, tags, id)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func deleteHandler(w http.ResponseWriter, r *http.Request) {
@@ -53,6 +68,28 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	statement, _ := database.Prepare("DELETE FROM entries WHERE id = ?")
 	statement.Exec(id)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func editHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, _ := strconv.Atoi(vars["id"])
+	stmt, err := database.Prepare("SELECT id, title, body, tags, created FROM entries WHERE id = ?")
+	if err != nil {
+		log.Fatal(err)
+	}
+	row := stmt.QueryRow(id)
+	e := Entry{}
+	var body string
+	row.Scan(&e.Id, &e.Title, &body, &e.Tags, &e.Created)
+	e.Body = template.HTML(body)
+
+	box := packr.NewBox("./templates")
+	s, err := box.FindString("edit.html")
+	if err != nil {
+		log.Fatal(err)
+	}
+	tmpl, _ := template.New("edit").Parse(s)
+	tmpl.Execute(w, e)
 }
 
 func createHandler(w http.ResponseWriter, r *http.Request) {
