@@ -9,13 +9,14 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
 type Entry struct {
 	Id          int
 	Title       string
-	Body        string
+	Body        template.HTML
 	Tags        string
 	Created     time.Time
 	CreatedText string
@@ -33,19 +34,11 @@ func initDatabase() {
 		log.Fatal(err)
 	}
 	statement.Exec()
-	statement, err = database.Prepare("INSERT INTO entries (title, body, tags, created) VALUES (?, ?, ?, ?)")
-	if err != nil {
-		log.Fatal(err)
-	}
-	_, err = statement.Exec(e1().Title, e1().Body, e1().Tags, e1().Created)
-	if err != nil {
-		log.Fatal(err)
-	}
 }
 
 func main() {
-
 	database, _ = sql.Open("sqlite3", "./justblog.db")
+	initDatabase()
 	mux := mux.NewRouter()
 	mux.HandleFunc("/new", newHandler)
 	mux.HandleFunc("/create", createHandler)
@@ -63,17 +56,15 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func createHandler(w http.ResponseWriter, r *http.Request) {
-	e := Entry{
-		Title:   r.FormValue("title"),
-		Body:    r.FormValue("body"),
-		Tags:    r.FormValue("tags"),
-		Created: time.Now(),
-	}
+	title := r.FormValue("title")
+	body := r.FormValue("body")
+	tags := r.FormValue("tags")
+	created := time.Now()
 	statement, err := database.Prepare("INSERT INTO entries (title, body, tags, created) VALUES (?, ?, ?, ?)")
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, err = statement.Exec(e.Title, e.Body, e.Tags, e.Created)
+	_, err = statement.Exec(title, body, tags, created)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -95,8 +86,10 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	data := IndexData{}
 	for rows.Next() {
 		e := Entry{}
-		rows.Scan(&e.Id, &e.Title, &e.Body, &e.Tags, &e.Created)
+		var body string
+		rows.Scan(&e.Id, &e.Title, &body, &e.Tags, &e.Created)
 		e.CreatedText = e.Created.Format(time.RFC1123)
+		e.Body = template.HTML(strings.Replace(body, "\r\n", "<br>", -1))
 		data.Entries = append(data.Entries, e)
 	}
 
@@ -104,13 +97,4 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	s, _ := box.FindString("index.html")
 	tmpl, _ := template.New("index").Parse(s)
 	tmpl.Execute(w, data)
-}
-
-func e1() Entry {
-	return Entry{
-		Title:   "Gedanke oder Gefühl",
-		Body:    "Es geht nicht darum, sich auf den Atem zu konzentrieren. Das wäre viel zu anstrengend. Es geht vielmehr darum, Ablenkungen wahrzunehmen. Ein Ablenkung kann ein Gedanke oder ein Gefühl sein. Sobald ich einen Gedanken bewusst wahrnehme, mache ich einen mentalen Haken Gedanke und kehre bewusst zum Atem zurück. Der Atem ist nur ein Anker, zu dem ich immer zurückkehren kann.",
-		Created: time.Now(),
-		Tags:    "#Meditation #Privat",
-	}
 }
