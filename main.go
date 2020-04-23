@@ -18,6 +18,7 @@ type Entry struct {
 	Title       string
 	Body        template.HTML
 	Tags        string
+	Public      int
 	Created     time.Time
 	CreatedText string
 }
@@ -29,7 +30,7 @@ type IndexData struct {
 var database *sql.DB
 
 func initDatabase() {
-	statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS entries (id INTEGER PRIMARY KEY, title TEXT, body TEXT, tags TEXT, created DATETIME)")
+	statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS entries (id INTEGER PRIMARY KEY, title TEXT, body TEXT, tags TEXT, created DATETIME, public INTEGER)")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -39,13 +40,15 @@ func initDatabase() {
 func main() {
 	database, _ = sql.Open("sqlite3", "./justblog.db")
 	initDatabase()
-	mux := mux.NewRouter()
-	mux.HandleFunc("/new", newHandler)
-	mux.HandleFunc("/delete/{id}", deleteHandler)
-	mux.HandleFunc("/update/{id}", updateHandler)
-	mux.HandleFunc("/edit/{id}", editHandler)
-	mux.HandleFunc("/", indexHandler)
-	http.ListenAndServe(":3000", mux)
+	router := mux.NewRouter()
+	router.HandleFunc("/new", newHandler)
+	router.HandleFunc("/delete/{id}", deleteHandler)
+	router.HandleFunc("/create", createHandler)
+	router.HandleFunc("/update/{id}", updateHandler)
+	router.HandleFunc("/edit/{id}", editHandler)
+	router.HandleFunc("/", indexHandler)
+	router.HandleFunc("/admin", adminHandler)
+	_ = http.ListenAndServe(":3000", router)
 }
 
 func updateHandler(w http.ResponseWriter, r *http.Request) {
@@ -54,12 +57,16 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 	title := r.FormValue("title")
 	body := r.FormValue("body")
 	tags := r.FormValue("tags")
-	statement, err := database.Prepare("UPDATE entries SET title = ?, body = ?, tags = ? WHERE ID = ?")
+	public := r.FormValue("public")
+	if len(public) == 0 {
+		public = "0"
+	}
+	statement, err := database.Prepare("UPDATE entries SET title = ?, body = ?, tags = ?, public = ? WHERE ID = ?")
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, err = statement.Exec(title, body, tags, id)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	_, err = statement.Exec(title, body, tags, public, id)
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }
 
 func deleteHandler(w http.ResponseWriter, r *http.Request) {
@@ -67,20 +74,20 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(vars["id"])
 	statement, _ := database.Prepare("DELETE FROM entries WHERE id = ?")
 	statement.Exec(id)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }
 
 func editHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, _ := strconv.Atoi(vars["id"])
-	stmt, err := database.Prepare("SELECT id, title, body, tags, created FROM entries WHERE id = ?")
+	stmt, err := database.Prepare("SELECT id, title, body, tags, created, public FROM entries WHERE id = ?")
 	if err != nil {
 		log.Fatal(err)
 	}
 	row := stmt.QueryRow(id)
 	e := Entry{}
 	var body string
-	row.Scan(&e.Id, &e.Title, &body, &e.Tags, &e.Created)
+	row.Scan(&e.Id, &e.Title, &body, &e.Tags, &e.Created, &e.Public)
 	e.Body = template.HTML(body)
 
 	box := packr.NewBox("./templates")
@@ -96,13 +103,17 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 	title := r.FormValue("title")
 	body := r.FormValue("body")
 	tags := r.FormValue("tags")
+	public := r.FormValue("public")
+	if len(public) == 0 {
+		public = "0"
+	}
 	created := time.Now()
-	statement, err := database.Prepare("INSERT INTO entries (title, body, tags, created) VALUES (?, ?, ?, ?)")
+	statement, err := database.Prepare("INSERT INTO entries (title, body, tags, created, public) VALUES (?, ?, ?, ?, ?)")
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, err = statement.Exec(title, body, tags, created)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	_, err = statement.Exec(title, body, tags, created, public)
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }
 
 func newHandler(w http.ResponseWriter, request *http.Request) {
@@ -116,7 +127,7 @@ func newHandler(w http.ResponseWriter, request *http.Request) {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	rows, err := database.Query("SELECT id, title, body, tags, created FROM entries order by created desc ")
+	rows, err := database.Query("SELECT id, title, body, tags, created, public FROM entries WHERE public = true order by created desc ")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -124,7 +135,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		e := Entry{}
 		var body string
-		rows.Scan(&e.Id, &e.Title, &body, &e.Tags, &e.Created)
+		rows.Scan(&e.Id, &e.Title, &body, &e.Tags, &e.Created, &e.Public)
 		e.CreatedText = e.Created.Format(time.RFC1123)
 		e.Body = template.HTML(strings.Replace(body, "\r\n", "<br>", -1))
 		data.Entries = append(data.Entries, e)
@@ -135,3 +146,25 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl, _ := template.New("index").Parse(s)
 	tmpl.Execute(w, data)
 }
+
+func adminHandler(w http.ResponseWriter, r *http.Request) {
+	rows, err := database.Query("SELECT id, title, body, tags, created, public FROM entries order by created desc ")
+	if err != nil {
+		log.Fatal(err)
+	}
+	data := IndexData{}
+	for rows.Next() {
+		e := Entry{}
+		var body string
+		rows.Scan(&e.Id, &e.Title, &body, &e.Tags, &e.Created, &e.Public)
+		e.CreatedText = e.Created.Format(time.RFC1123)
+		e.Body = template.HTML(strings.Replace(body, "\r\n", "<br>", -1))
+		data.Entries = append(data.Entries, e)
+	}
+
+	box := packr.NewBox("./templates")
+	s, _ := box.FindString("admin.html")
+	tmpl, _ := template.New("admin").Parse(s)
+	tmpl.Execute(w, data)
+}
+
