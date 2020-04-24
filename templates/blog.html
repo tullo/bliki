@@ -1,0 +1,10 @@
+<h1>Ralf Wirdemann's Blog</h1>
+<a href="/">Home</a>
+{{range .Entries}}
+    <h2>{{.Title}}</h2>
+    <strong>{{.CreatedText}}</strong>
+    <p>{{.Body}}</p>
+    <p>
+        {{.Tags}}
+    </p>
+{{end}}

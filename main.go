@@ -2,15 +2,16 @@ package main
 
 import (
 	"database/sql"
-	"github.com/gobuffalo/packr"
-	"github.com/gorilla/mux"
-	_ "github.com/mattn/go-sqlite3"
 	"html/template"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gobuffalo/packr"
+	"github.com/gorilla/mux"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type Entry struct {
@@ -47,6 +48,7 @@ func main() {
 	router.HandleFunc("/update/{id}", updateHandler)
 	router.HandleFunc("/edit/{id}", editHandler)
 	router.HandleFunc("/", indexHandler)
+	router.HandleFunc("/blog", blogHandler)
 	router.HandleFunc("/admin", adminHandler)
 	_ = http.ListenAndServe(":3000", router)
 }
@@ -126,7 +128,17 @@ func newHandler(w http.ResponseWriter, request *http.Request) {
 	tmpl.Execute(w, nil)
 }
 
-func indexHandler(w http.ResponseWriter, r *http.Request) {
+func indexHandler(w http.ResponseWriter, request *http.Request) {
+	box := packr.NewBox("./templates")
+	s, err := box.FindString("index.html")
+	if err != nil {
+		log.Fatal(err)
+	}
+	tmpl, _ := template.New("index").Parse(s)
+	tmpl.Execute(w, nil)
+}
+
+func blogHandler(w http.ResponseWriter, r *http.Request) {
 	rows, err := database.Query("SELECT id, title, body, tags, created, public FROM entries WHERE public = true order by created desc ")
 	if err != nil {
 		log.Fatal(err)
@@ -142,8 +154,8 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	box := packr.NewBox("./templates")
-	s, _ := box.FindString("index.html")
-	tmpl, _ := template.New("index").Parse(s)
+	s, _ := box.FindString("blog.html")
+	tmpl, _ := template.New("blog").Parse(s)
 	tmpl.Execute(w, data)
 }
 
@@ -167,4 +179,3 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl, _ := template.New("admin").Parse(s)
 	tmpl.Execute(w, data)
 }
-
