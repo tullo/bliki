@@ -1,6 +1,6 @@
 build:
 	packr
-	go build -o $GOPATH/bin/justblog main.go
+	go build -o bin/justblog main.go
 	packr clean
 
 clean:
