@@ -48,7 +48,7 @@ func main() {
 	router.HandleFunc("/update/{id}", updateHandler)
 	router.HandleFunc("/edit/{id}", editHandler)
 	router.HandleFunc("/", indexHandler)
-	router.HandleFunc("/blog", blogHandler)
+	router.HandleFunc("/bliki", blikiHandler)
 	router.HandleFunc("/admin", adminHandler)
 	_ = http.ListenAndServe(":3000", router)
 }
@@ -138,7 +138,7 @@ func indexHandler(w http.ResponseWriter, request *http.Request) {
 	tmpl.Execute(w, nil)
 }
 
-func blogHandler(w http.ResponseWriter, r *http.Request) {
+func blikiHandler(w http.ResponseWriter, r *http.Request) {
 	rows, err := database.Query("SELECT id, title, body, tags, created, public FROM entries WHERE public = true order by created desc ")
 	if err != nil {
 		log.Fatal(err)
@@ -154,8 +154,8 @@ func blogHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	box := packr.NewBox("./templates")
-	s, _ := box.FindString("blog.html")
-	tmpl, _ := template.New("blog").Parse(s)
+	s, _ := box.FindString("bliki.html")
+	tmpl, _ := template.New("bliki").Parse(s)
 	tmpl.Execute(w, data)
 }
 
