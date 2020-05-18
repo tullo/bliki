@@ -1,10 +1,22 @@
-<h1>Ralf Wirdemann's Bliki</h1>
-<a href="/">Home</a>
-{{range .Entries}}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="stylesheet" href="https://newcss.net/new.min.css">
+    <link rel="stylesheet" href="https://newcss.net/theme/terminal.css">
+</head>
+
+<body>
+    <h1>Ralf Wirdemann's Bliki</h1>
+    <a href="http://ralfwirdemann.de">Home</a>
+    {{range .Entries}}
     <h2>{{.Title}}</h2>
     <strong>{{.CreatedText}}</strong>
     <p>{{.Body}}</p>
     <p>
         {{.Tags}}
     </p>
-{{end}}
+    {{end}}
+</body>
+
+</html>
