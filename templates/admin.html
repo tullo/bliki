@@ -1,6 +1,16 @@
-<h1>Ralf Wirdemann's Blog Admin</h1>
-<a href="/new">New...</a>
-{{range .Entries}}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="stylesheet" href="https://newcss.net/new.min.css">
+    <link rel="stylesheet" href="https://newcss.net/theme/terminal.css">
+</head>
+
+<body>
+
+    <h1>Ralf Wirdemann's Blog Admin</h1>
+    <a href="/new">New...</a>
+    {{range .Entries}}
     <h2>{{.Title}} {{if .Public}} (public) {{else}} (private) {{end}}</h2>
     <strong>{{.CreatedText}}</strong>
     <p>{{.Body}}</p>
@@ -11,4 +21,7 @@
         <a href="/edit/{{.Id}}">Edit</a> |
         <a href="/delete/{{.Id}}" onclick="return confirm('Are you sure you want to delete this entry?')">Delete</a>
     </p>
-{{end}}
+    {{end}}
+</body>
+
+</html>

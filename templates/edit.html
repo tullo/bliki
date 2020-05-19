@@ -1,13 +1,24 @@
-<h1>Edit</h1>
+<!DOCTYPE html>
+<html lang="en">
 
-<form action="/update/{{.Id}}" method="put">
-    <label for="title">Title</label><br>
-    <input type="text" id="title" name="title" size="82" autofocus required="true" value="{{.Title}}"><br>
-    <label for="body">Body</label><br>
-    <textarea name="body" cols="80" rows="10">{{.Body}}</textarea><br>
-    <label for="tags">Tags</label><br>
-    <input type="text" name="tags" size="82" value="{{.Tags}}"><br><br>
-    <label for="public">Public</label>
-    <input type="checkbox" name="public" value="1" {{if .Public}} checked {{end}}>
-    <input type="submit">
-</form>
+<head>
+    <link rel="stylesheet" href="https://newcss.net/new.min.css">
+    <link rel="stylesheet" href="https://newcss.net/theme/terminal.css">
+</head>
+
+<body>
+    <h1>Edit</h1>
+
+    <form action="/update/{{.Id}}" method="put">
+        <label for="title">Title</label><br>
+        <input type="text" id="title" name="title" size="82" autofocus required="true" value="{{.Title}}"><br>
+        <label for="body">Body</label><br>
+        <textarea name="body" cols="80" rows="10">{{.Body}}</textarea><br>
+        <label for="tags">Tags</label><br>
+        <input type="text" name="tags" size="82" value="{{.Tags}}"><br><br>
+        <label for="public">Public</label>
+        <input type="checkbox" name="public" value="1" {{if .Public}} checked {{end}}>
+        <input type="submit">
+    </form>
+</body>
+</html>
