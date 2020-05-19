@@ -5,12 +5,14 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gobuffalo/packr"
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -39,16 +41,21 @@ func initDatabase() {
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 	database, _ = sql.Open("sqlite3", "./justblog.db")
 	initDatabase()
 	router := mux.NewRouter()
-	router.HandleFunc("/new", newHandler)
-	router.HandleFunc("/delete/{id}", deleteHandler)
-	router.HandleFunc("/create", createHandler)
-	router.HandleFunc("/update/{id}", updateHandler)
-	router.HandleFunc("/edit/{id}", editHandler)
 	router.HandleFunc("/", indexHandler)
-	router.HandleFunc("/admin", adminHandler)
+	router.HandleFunc("/new", basicAuth(newHandler))
+	router.HandleFunc("/delete/{id}", basicAuth(deleteHandler))
+	router.HandleFunc("/create", basicAuth(createHandler))
+	router.HandleFunc("/update/{id}", basicAuth(updateHandler))
+	router.HandleFunc("/edit/{id}", basicAuth(editHandler))
+	router.HandleFunc("/admin", basicAuth(adminHandler))
+	log.Printf("listing on port 3000...")
 	_ = http.ListenAndServe(":3000", router)
 }
 
@@ -167,4 +174,17 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 	s, _ := box.FindString("admin.html")
 	tmpl, _ := template.New("admin").Parse(s)
 	tmpl.Execute(w, data)
+}
+
+func basicAuth(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if username, password, ok := r.BasicAuth(); ok {
+			if username == os.Getenv("USERNAME") && password == os.Getenv("PASSWORD") {
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+		w.Header().Set("WWW-Authenticate", "Basic realm=\"restvoice.org\"")
+		w.WriteHeader(http.StatusUnauthorized)
+	}
 }
