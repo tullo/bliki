@@ -55,8 +55,12 @@ func main() {
 	router.HandleFunc("/update/{id}", basicAuth(updateHandler))
 	router.HandleFunc("/edit/{id}", basicAuth(editHandler))
 	router.HandleFunc("/admin", basicAuth(adminHandler))
-	log.Printf("listing on port 3000...")
-	_ = http.ListenAndServe(":3000", router)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "3000"
+	}
+	log.Printf("listing on port %s...", port)
+	_ = http.ListenAndServe(":"+port, router)
 }
 
 func updateHandler(w http.ResponseWriter, r *http.Request) {
