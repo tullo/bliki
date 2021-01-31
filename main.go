@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gobuffalo/packr"
+	"github.com/gobuffalo/packr/v2"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
@@ -45,7 +45,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-	database, _ = sql.Open("sqlite3", "./justblog.db")
+	database, _ = sql.Open("sqlite3", "./bliki.db")
 	initDatabase()
 	router := mux.NewRouter()
 	router.HandleFunc("/", indexHandler)
@@ -102,7 +102,7 @@ func editHandler(w http.ResponseWriter, r *http.Request) {
 	row.Scan(&e.Id, &e.Title, &body, &e.Tags, &e.Created, &e.Public)
 	e.Body = template.HTML(body)
 
-	box := packr.NewBox("./templates")
+	box := packr.New("bliki", "./templates")
 	s, err := box.FindString("edit.html")
 	if err != nil {
 		log.Fatal(err)
@@ -129,7 +129,7 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func newHandler(w http.ResponseWriter, request *http.Request) {
-	box := packr.NewBox("./templates")
+	box := packr.New("bliki", "./templates")
 	s, err := box.FindString("new.html")
 	if err != nil {
 		log.Fatal(err)
@@ -153,7 +153,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		data.Entries = append(data.Entries, e)
 	}
 
-	box := packr.NewBox("./templates")
+	box := packr.New("bliki", "./templates")
 	s, _ := box.FindString("bliki.html")
 	tmpl, _ := template.New("bliki").Parse(s)
 	tmpl.Execute(w, data)
@@ -174,7 +174,7 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 		data.Entries = append(data.Entries, e)
 	}
 
-	box := packr.NewBox("./templates")
+	box := packr.New("bliki", "./templates")
 	s, _ := box.FindString("admin.html")
 	tmpl, _ := template.New("admin").Parse(s)
 	tmpl.Execute(w, data)

@@ -1,4 +1,4 @@
 .idea
-justblog.db
 bin
 .env
+bliki.db
